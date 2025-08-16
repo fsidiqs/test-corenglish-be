@@ -12,6 +12,22 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
   constructor(private configService: ConfigService) {}
 
   createTypeOrmOptions(): TypeOrmModuleOptions {
+    // Check if DATABASE_URL is provided (Railway style)
+    const databaseUrl = this.configService.get<string>('DATABASE_URL');
+    
+    if (databaseUrl) {
+      return {
+        type: 'postgres',
+        url: databaseUrl,
+        entities: [Task],
+        migrations: ['dist/migrations/*.js'],
+        synchronize: this.configService.get<boolean>('DB_SYNCHRONIZE', false),
+        logging: this.configService.get<boolean>('DB_LOGGING', false),
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      };
+    }
+
+    // Fallback to individual config values
     return {
       type: 'postgres',
       host: this.configService.get<string>('DB_HOST', 'localhost'),
@@ -28,17 +44,29 @@ export class DatabaseConfig implements TypeOrmOptionsFactory {
 }
 
 // DataSource configuration for TypeORM CLI
-const dataSourceOptions: DataSourceOptions = {
-  type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT) || 5432,
-  username: process.env.DB_USERNAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_NAME || 'task_management',
-  entities: ['src/**/*.entity.ts'],
-  migrations: ['src/migrations/*.ts'],
-  synchronize: false,
-  logging: false,
-};
+const databaseUrl = process.env.DATABASE_URL;
+
+const dataSourceOptions: DataSourceOptions = databaseUrl
+  ? {
+      type: 'postgres',
+      url: databaseUrl,
+      entities: ['src/**/*.entity.ts'],
+      migrations: ['src/migrations/*.ts'],
+      synchronize: false,
+      logging: false,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    }
+  : {
+      type: 'postgres',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 5432,
+      username: process.env.DB_USERNAME || 'postgres',
+      password: process.env.DB_PASSWORD || 'password',
+      database: process.env.DB_NAME || 'task_management',
+      entities: ['src/**/*.entity.ts'],
+      migrations: ['src/migrations/*.ts'],
+      synchronize: false,
+      logging: false,
+    };
 
 export default new DataSource(dataSourceOptions);
