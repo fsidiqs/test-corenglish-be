@@ -2,39 +2,48 @@ services:
   # PostgreSQL Database Service
   postgres:
     image: postgres:15-alpine
+    container_name: task-management-postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: ${DATABASE_URL:-task_management}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
-      PGPORT: ${PORT:-5432}
+      POSTGRES_DB: ${DB_NAME:-task_management}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      PGPORT: ${DB_PORT:-5432}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:${DB_PORT:-5432}"
+    command: postgres -p ${DB_PORT:-5432}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - task-management-network
 
   # NestJS Application Service
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: task-management-app
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      NODE_ENV: production
       HOST: 0.0.0.0
       DB_HOST: postgres
-      PORT: ${PORT:-3000}
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     depends_on:
       - postgres
+    networks:
+      - task-management-network
     volumes:
-      - ./dist:/usr/src/app/dist
+      - C:/Users/hashf/Documents/project-hashfi/test-intv/be/test-corenglish/dist:/usr/src/app/dist
     command: >
       sh -c "
         echo 'Waiting for PostgreSQL to be ready...' &&
-        sleep 15 &&
+        sleep 10 &&
         npm run migration:run &&
         npm run start:prod
       "
@@ -43,3 +52,8 @@ services:
 volumes:
   postgres_data:
     driver: local
+
+# Custom network for service communication
+networks:
+  task-management-network:
+    driver: bridge
