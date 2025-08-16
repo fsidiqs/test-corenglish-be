@@ -1,5 +1,5 @@
 services:
-  # PostgreSQL Database Services
+  # PostgreSQL Database Service
   postgres:
     image: postgres:15-alpine
     container_name: task-management-postgres
@@ -39,7 +39,7 @@ services:
     networks:
       - task-management-network
     volumes:
-      - C:/Users/hashf/Documents/project-hashfi/test-intv/be/test-corenglish/dist:/usr/src/app/dist
+      - ./dist:/usr/src/app/dist
     command: >
       sh -c "
         echo 'Waiting for PostgreSQL to be ready...' &&
